@@ -59,16 +59,6 @@ export function unitOptions(customUnits = []) {
   return Object.keys(map).map((k) => ({ name: k, ...map[k] }));
 }
 
-// Whether a recipe-line unit can be converted into the ingredient's base unit.
-// Used to flag "scoop of a per-gram ingredient" mismatches instead of silently mis-costing.
-export function unitConvertsTo(unit, ingredientBaseUnit, unitMap) {
-  const u = unitMap && unitMap[(unit || '').toLowerCase()];
-  if (!u) return false;
-  if (u.base === ingredientBaseUnit) return true;
-  if ((u.base === 'ml' && ingredientBaseUnit === 'g') || (u.base === 'g' && ingredientBaseUnit === 'ml')) return true;
-  return false;
-}
-
 export function convertToBase(quantity, unit, ingredientBaseUnit, unitMap) {
   if (quantity == null) return 0;
   const u = unitMap[(unit || '').toLowerCase()];
@@ -79,4 +69,30 @@ export function convertToBase(quantity, unit, ingredientBaseUnit, unitMap) {
     return baseQty;
   }
   return quantity;
+}
+
+// True when `unit` can be meaningfully converted into the ingredient's base unit.
+// Used to warn about silently mis-costed lines (e.g. "2 slice" against a per-gram ingredient
+// with no gram equivalent defined).
+export function canConvertUnit(unit, ingredientBaseUnit, unitMap) {
+  if (!ingredientBaseUnit) return true;
+  const u = (unitMap || STANDARD_UNITS)[(unit || '').toLowerCase()];
+  if (!u) return true; // unknown unit — don't warn
+  if (u.base === ingredientBaseUnit) return true;
+  if ((u.base === 'ml' && ingredientBaseUnit === 'g') || (u.base === 'g' && ingredientBaseUnit === 'ml')) return true;
+  return false;
+}
+
+// Converts a purchase pack quantity (expressed in the ingredient's pack unit, e.g. kg/L/each)
+// into the ingredient's base unit (g/ml/each). Pack units are always standard units.
+// e.g. a 5 kg bag with base_unit 'g' → 5000. Falls back to the raw amount when the pack
+// unit and base unit are different dimensions and no conversion is possible.
+export function convertPackToBase(quantity, packUnit, baseUnit) {
+  const q = Number(quantity) || 0;
+  const base = baseUnit || 'g';
+  const pu = STANDARD_UNITS[(packUnit || '').toLowerCase()];
+  if (!pu) return q; // unknown/blank pack unit — assume already in base units
+  if (pu.base === base) return q * (pu.factor || 1);
+  if ((pu.base === 'ml' && base === 'g') || (pu.base === 'g' && base === 'ml')) return q * (pu.factor || 1);
+  return q; // incompatible dimensions (e.g. count pack vs weight base)
 }

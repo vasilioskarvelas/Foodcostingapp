@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { menuItemMetrics, recipeLineCost, fmtMoney, fmtPct, marginStatus, STATUS_COLORS, priceIncreaseImpact } from '@/lib/calc';
-import { PIZZA_SIZES, scaleRatio, unitOptions, unitConvertsTo } from '@/lib/units';
+import { PIZZA_SIZES, scaleRatio, unitOptions, canConvertUnit, STANDARD_UNITS } from '@/lib/units';
 import StatusPill, { MarginPill } from '@/components/StatusPill';
 import { X, Plus, Sparkles, Copy, Scale, Check, Loader2, Trash2, ChevronDown, AlertTriangle } from 'lucide-react';
 
+// Best-guess base unit for a newly auto-created ingredient, from the unit the AI suggested.
+function baseUnitForSuggestedUnit(unit) {
+  const u = STANDARD_UNITS[(unit || '').toLowerCase()];
+  if (u && (u.base === 'ml' || u.base === 'g' || u.base === 'each')) return u.base;
+  return 'g';
+}
+
 export default function MenuItemEditor({ item, data, onClose, onDeleted, onDuplicated }) {
-  const { ingredientMap, preparedRecipeMap, unitMap, ingredients, preparedRecipes, units, business, reload } = data;
+  const { ingredientMap, preparedRecipeMap, unitMap, ingredients, preparedRecipes, units, business } = data;
   const gstRate = business?.gst_enabled ? business.tax_rate : 0;
   const symbol = business?.currency_symbol || '$';
   const [draft, setDraft] = useState(item);
@@ -76,9 +83,32 @@ export default function MenuItemEditor({ item, data, onClose, onDeleted, onDupli
         size: draft.size,
         size_diameter: draft.size_diameter
       });
-      const suggested = (res.data.lines || []).map((l) => {
-        const match = (ingredients || []).find((i) => i.name.toLowerCase() === l.name.toLowerCase());
-        return {
+      // Auto-create any ingredient the AI suggested that isn't in the database yet, so the
+      // recipe produces a real cost instead of $0 and the new items show up under
+      // "missing prices" for the user to price. Existing ingredients are matched by name.
+      const known = [...(ingredients || [])];
+      let createdCount = 0;
+      const suggested = [];
+      for (const l of (res.data.lines || [])) {
+        let match = known.find((i) => i.name.toLowerCase() === (l.name || '').toLowerCase());
+        if (!match && l.name) {
+          const base = baseUnitForSuggestedUnit(l.unit);
+          match = await base44.entities.Ingredient.create({
+            name: l.name,
+            category: 'Uncategorised',
+            base_unit: base,
+            pack_size: base === 'each' ? 1 : 1000,
+            pack_unit: base,
+            yield_pct: 100,
+            wastage_pct: 0,
+            purchase_price_excl_gst: 0,
+            purchase_price_incl_gst: 0,
+            status: 'active'
+          });
+          known.push(match);
+          createdCount += 1;
+        }
+        suggested.push({
           name: l.name,
           ingredient_id: match ? match.id : '',
           unit: l.unit,
@@ -86,32 +116,10 @@ export default function MenuItemEditor({ item, data, onClose, onDeleted, onDupli
           is_prepared_recipe: false,
           confidence: l.confidence,
           status: 'ai_suggested'
-        };
-      });
-      // Auto-create any unmatched suggested ingredients (at $0) so the recipe
-      // costs immediately once prices are added, and they surface in the
-      // dashboard "missing prices" counter as a clear to-do.
-      const unmatchedNames = Array.from(new Set(
-        suggested.filter((l) => !l.ingredient_id).map((l) => l.name).filter(Boolean)
-      ));
-      const createdByName = {};
-      if (unmatchedNames.length) {
-        const created = await base44.entities.Ingredient.bulkCreate(
-          unmatchedNames.map((name) => ({
-            name, base_unit: 'g', pack_size: 1000, pack_unit: 'g',
-            yield_pct: 100, wastage_pct: 0, status: 'active',
-            purchase_price_excl_gst: 0, purchase_price_incl_gst: 0
-          }))
-        );
-        (created || []).forEach((c) => { createdByName[c.name.toLowerCase()] = c; });
+        });
       }
-      const finalLines = suggested.map((l) => {
-        if (l.ingredient_id) return l;
-        const c = createdByName[(l.name || '').toLowerCase()];
-        return c ? { ...l, ingredient_id: c.id } : l;
-      });
-      setDraft((d) => ({ ...d, recipe_lines: finalLines, review_status: 'needs_review' }));
-      if (unmatchedNames.length && reload) reload();
+      setDraft((d) => ({ ...d, recipe_lines: suggested, review_status: 'needs_review' }));
+      if (createdCount && data.reload) data.reload();
     } catch (e) {
       alert('Could not generate suggestions: ' + e.message);
     } finally {
@@ -252,9 +260,13 @@ export default function MenuItemEditor({ item, data, onClose, onDeleted, onDupli
                     <tr><td colSpan={5} className="px-3 py-6 text-center text-neutral-400 text-sm">No ingredients yet. Use AI suggest or add a line.</td></tr>
                   )}
                   {(draft.recipe_lines || []).map((line, idx) => {
-                    const cost = recipeLineCost(line, ingredientMap, preparedRecipeMap, unitMap);
-                    const lineIng = line.ingredient_id ? ingredientMap[line.ingredient_id] : null;
-                    const mismatch = lineIng && !line.is_prepared_recipe && line.unit && !unitConvertsTo(line.unit, lineIng.base_unit, unitMap);
+                    const cost = line.is_prepared_recipe
+                      ? (preparedRecipeMap[line.prepared_recipe_id]?.cost_per_unit || 0) * (Number(line.quantity) || 0)
+                      : line.ingredient_id
+                        ? recipeLineCost(line, ingredientMap, preparedRecipeMap, unitMap)
+                        : 0;
+                    const unitMismatch = !line.is_prepared_recipe && line.ingredient_id &&
+                      !canConvertUnit(line.unit, ingredientMap[line.ingredient_id]?.base_unit, unitMap);
                     return (
                       <tr key={idx} className="hover:bg-neutral-50">
                         <td className="px-3 py-1.5">
@@ -293,8 +305,11 @@ export default function MenuItemEditor({ item, data, onClose, onDeleted, onDupli
                         </td>
                         <td className="px-2 py-1.5 text-right text-sm font-medium tabular-nums">
                           <span className="inline-flex items-center gap-1 justify-end">
-                            {mismatch && (
-                              <span title="This unit can't be costed against the ingredient's base unit. Set a gram/ml equivalent in Settings → Custom units." className="text-amber-500"><AlertTriangle className="w-3.5 h-3.5" /></span>
+                            {unitMismatch && (
+                              <AlertTriangle
+                                className="w-3.5 h-3.5 text-amber-500"
+                                title={`"${line.unit}" can't convert to ${ingredientMap[line.ingredient_id]?.base_unit || 'base unit'}. Define its equivalent in Settings → Custom units for an accurate cost.`}
+                              />
                             )}
                             {fmtMoney(cost, symbol)}
                           </span>

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { buildUnitMap } from './units';
+import { recipeLineCost } from './calc';
 
 // Loads the shared catalog data used by calculations across pages.
 export function useMenuData() {
@@ -26,9 +27,18 @@ export function useMenuData() {
       ]);
       const ingredientMap = {};
       (ingredients || []).forEach((i) => { ingredientMap[i.id] = i; });
-      const preparedRecipeMap = {};
-      (preparedRecipes || []).forEach((p) => { preparedRecipeMap[p.id] = p; });
       const unitMap = buildUnitMap(units || []);
+      // Recompute each prepared recipe's cost-per-unit live from current ingredient prices,
+      // so menu items that use a sub-recipe reflect the latest costs instead of a stale
+      // value saved when the recipe was last edited.
+      const preparedRecipeMap = {};
+      (preparedRecipes || []).forEach((p) => {
+        const batchCost = (p.ingredients || []).reduce(
+          (s, l) => s + recipeLineCost(l, ingredientMap, {}, unitMap), 0
+        );
+        const liveCpu = p.usable_yield ? batchCost / p.usable_yield : (p.cost_per_unit || 0);
+        preparedRecipeMap[p.id] = { ...p, cost_per_unit: liveCpu };
+      });
       setData({
         loading: false,
         ingredients: ingredients || [],

@@ -1,4 +1,4 @@
-import { convertToBase, STANDARD_UNITS } from './units';
+import { convertToBase, convertPackToBase } from './units';
 
 export const DEFAULT_GST_RATE = 0.10;
 
@@ -11,29 +11,17 @@ export function gstInclusivePrice(priceExclGst, gstRate = DEFAULT_GST_RATE) {
   return (priceExclGst || 0) * (1 + gstRate);
 }
 
-export function ingredientCostPerBaseUnit(ing, unitMap) {
+export function ingredientCostPerBaseUnit(ing) {
   if (!ing) return 0;
   const priceExcl = ing.purchase_price_excl_gst || 0;
-  if (!priceExcl) return 0;
+  // Convert the pack quantity from its pack unit (kg/L/each) into the base unit (g/ml/each)
+  // so a "5 kg" bag with base_unit "g" yields cost-per-gram, not cost-per-kilogram.
+  const baseQty = convertPackToBase(ing.pack_size || 0, ing.pack_unit || ing.base_unit, ing.base_unit || 'g');
   const yieldPct = (ing.yield_pct ?? 100) / 100;
-  const wastagePct = (ing.wastage_pct ?? 0) / 100;
-  const usableFactor = yieldPct * (1 - wastagePct);
-  if (!usableFactor) return 0;
-  // Convert the pack quantity from its pack unit into the ingredient's base unit
-  // (e.g. a 20 kg bag → 20,000 g) before dividing the purchase price.
-  const baseQty = convertToBase(Number(ing.pack_size) || 0, ing.pack_unit || 'each', ing.base_unit || 'each', unitMap || STANDARD_UNITS);
-  if (!baseQty) return 0;
-  return priceExcl / (baseQty * usableFactor);
-}
-
-// Recomputes a prepared recipe's cost per unit live from current ingredient prices,
-// so price changes cascade to every menu item that uses the sub-recipe.
-export function preparedRecipeCostPerUnit(pr, ingredientMap, preparedRecipeMap, unitMap) {
-  if (!pr) return 0;
-  const batchCost = (pr.ingredients || []).reduce((s, l) => s + recipeLineCost(l, ingredientMap, preparedRecipeMap, unitMap), 0);
-  const yieldQty = Number(pr.usable_yield) || Number(pr.batch_yield) || 0;
-  if (!yieldQty) return 0;
-  return batchCost / yieldQty;
+  const wastePct = (ing.wastage_pct ?? 0) / 100;
+  const usable = baseQty * yieldPct * (1 - wastePct);
+  if (!usable) return 0;
+  return priceExcl / usable;
 }
 
 export function recipeLineCost(line, ingredientMap, preparedRecipeMap, unitMap) {
@@ -42,11 +30,11 @@ export function recipeLineCost(line, ingredientMap, preparedRecipeMap, unitMap) 
   if (line.is_prepared_recipe) {
     const pr = preparedRecipeMap && preparedRecipeMap[line.prepared_recipe_id];
     if (!pr) return 0;
-    return preparedRecipeCostPerUnit(pr, ingredientMap, preparedRecipeMap, unitMap) * qty;
+    return (pr.cost_per_unit || 0) * qty;
   }
   const ing = ingredientMap && ingredientMap[line.ingredient_id];
   if (!ing) return 0;
-  const costPerBase = ingredientCostPerBaseUnit(ing, unitMap);
+  const costPerBase = ingredientCostPerBaseUnit(ing);
   const baseQty = convertToBase(qty, line.unit, ing.base_unit, unitMap);
   return costPerBase * baseQty;
 }
