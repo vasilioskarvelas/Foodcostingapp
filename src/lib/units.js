@@ -59,6 +59,16 @@ export function unitOptions(customUnits = []) {
   return Object.keys(map).map((k) => ({ name: k, ...map[k] }));
 }
 
+// Whether a recipe-line unit can be converted into the ingredient's base unit.
+// Used to flag "scoop of a per-gram ingredient" mismatches instead of silently mis-costing.
+export function unitConvertsTo(unit, ingredientBaseUnit, unitMap) {
+  const u = unitMap && unitMap[(unit || '').toLowerCase()];
+  if (!u) return false;
+  if (u.base === ingredientBaseUnit) return true;
+  if ((u.base === 'ml' && ingredientBaseUnit === 'g') || (u.base === 'g' && ingredientBaseUnit === 'ml')) return true;
+  return false;
+}
+
 export function convertToBase(quantity, unit, ingredientBaseUnit, unitMap) {
   if (quantity == null) return 0;
   const u = unitMap[(unit || '').toLowerCase()];

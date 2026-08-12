@@ -74,8 +74,8 @@ export default function Settings() {
             <select value={form.currency || 'AUD'} onChange={(e) => { const c = CURRENCIES.find((x) => x.code === e.target.value); setForm({ ...form, currency: c.code, currency_symbol: c.symbol }); }} className="input mt-0.5">
               {CURRENCIES.map((c) => <option key={c.code} value={c.code}>{c.code} ({c.symbol})</option>)}
             </select></label>
-          <label className="block"><span className="text-xs font-medium text-neutral-500">Tax rate</span>
-            <div className="flex items-center gap-1 mt-0.5"><input type="number" step="0.01" value={form.tax_rate ?? 0.1} onChange={(e) => setForm({ ...form, tax_rate: Number(e.target.value) })} className="input" /></div></label>
+          <label className="block"><span className="text-xs font-medium text-neutral-500">Tax rate (%)</span>
+            <div className="flex items-center gap-1 mt-0.5"><input type="number" step="1" value={Math.round((form.tax_rate ?? 0.1) * 100)} onChange={(e) => setForm({ ...form, tax_rate: (Number(e.target.value) || 0) / 100 })} className="input" /><span className="text-sm text-neutral-400">%</span></div></label>
           <label className="flex items-center gap-2 col-span-2 mt-1">
             <input type="checkbox" checked={form.gst_enabled ?? true} onChange={(e) => setForm({ ...form, gst_enabled: e.target.checked })} className="w-4 h-4 rounded" />
             <span className="text-sm">GST enabled (Australian GST defaults to 10%)</span>

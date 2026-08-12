@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { menuItemMetrics, recipeLineCost, fmtMoney, fmtPct, marginStatus, STATUS_COLORS, priceIncreaseImpact } from '@/lib/calc';
-import { PIZZA_SIZES, scaleRatio, unitOptions } from '@/lib/units';
+import { PIZZA_SIZES, scaleRatio, unitOptions, unitConvertsTo } from '@/lib/units';
 import StatusPill, { MarginPill } from '@/components/StatusPill';
-import { X, Plus, Sparkles, Copy, Scale, Check, Loader2, Trash2, ChevronDown } from 'lucide-react';
+import { X, Plus, Sparkles, Copy, Scale, Check, Loader2, Trash2, ChevronDown, AlertTriangle } from 'lucide-react';
 
 export default function MenuItemEditor({ item, data, onClose, onDeleted, onDuplicated }) {
-  const { ingredientMap, preparedRecipeMap, unitMap, ingredients, preparedRecipes, units, business } = data;
+  const { ingredientMap, preparedRecipeMap, unitMap, ingredients, preparedRecipes, units, business, reload } = data;
   const gstRate = business?.gst_enabled ? business.tax_rate : 0;
   const symbol = business?.currency_symbol || '$';
   const [draft, setDraft] = useState(item);
@@ -88,7 +88,30 @@ export default function MenuItemEditor({ item, data, onClose, onDeleted, onDupli
           status: 'ai_suggested'
         };
       });
-      setDraft((d) => ({ ...d, recipe_lines: suggested, review_status: 'needs_review' }));
+      // Auto-create any unmatched suggested ingredients (at $0) so the recipe
+      // costs immediately once prices are added, and they surface in the
+      // dashboard "missing prices" counter as a clear to-do.
+      const unmatchedNames = Array.from(new Set(
+        suggested.filter((l) => !l.ingredient_id).map((l) => l.name).filter(Boolean)
+      ));
+      const createdByName = {};
+      if (unmatchedNames.length) {
+        const created = await base44.entities.Ingredient.bulkCreate(
+          unmatchedNames.map((name) => ({
+            name, base_unit: 'g', pack_size: 1000, pack_unit: 'g',
+            yield_pct: 100, wastage_pct: 0, status: 'active',
+            purchase_price_excl_gst: 0, purchase_price_incl_gst: 0
+          }))
+        );
+        (created || []).forEach((c) => { createdByName[c.name.toLowerCase()] = c; });
+      }
+      const finalLines = suggested.map((l) => {
+        if (l.ingredient_id) return l;
+        const c = createdByName[(l.name || '').toLowerCase()];
+        return c ? { ...l, ingredient_id: c.id } : l;
+      });
+      setDraft((d) => ({ ...d, recipe_lines: finalLines, review_status: 'needs_review' }));
+      if (unmatchedNames.length && reload) reload();
     } catch (e) {
       alert('Could not generate suggestions: ' + e.message);
     } finally {
@@ -229,11 +252,9 @@ export default function MenuItemEditor({ item, data, onClose, onDeleted, onDupli
                     <tr><td colSpan={5} className="px-3 py-6 text-center text-neutral-400 text-sm">No ingredients yet. Use AI suggest or add a line.</td></tr>
                   )}
                   {(draft.recipe_lines || []).map((line, idx) => {
-                    const cost = line.is_prepared_recipe
-                      ? (preparedRecipeMap[line.prepared_recipe_id]?.cost_per_unit || 0) * (Number(line.quantity) || 0)
-                      : line.ingredient_id
-                        ? recipeLineCost(line, ingredientMap, preparedRecipeMap, unitMap)
-                        : 0;
+                    const cost = recipeLineCost(line, ingredientMap, preparedRecipeMap, unitMap);
+                    const lineIng = line.ingredient_id ? ingredientMap[line.ingredient_id] : null;
+                    const mismatch = lineIng && !line.is_prepared_recipe && line.unit && !unitConvertsTo(line.unit, lineIng.base_unit, unitMap);
                     return (
                       <tr key={idx} className="hover:bg-neutral-50">
                         <td className="px-3 py-1.5">
@@ -270,7 +291,14 @@ export default function MenuItemEditor({ item, data, onClose, onDeleted, onDupli
                         <td className="px-2 py-1.5">
                           <input type="number" step="0.01" value={line.quantity || ''} onChange={(e) => updateLine(idx, { quantity: Number(e.target.value), status: 'confirmed' })} className="w-full text-right border-0 bg-transparent outline-none focus:bg-neutral-100 rounded px-1 py-1 text-sm" />
                         </td>
-                        <td className="px-2 py-1.5 text-right text-sm font-medium tabular-nums">{fmtMoney(cost, symbol)}</td>
+                        <td className="px-2 py-1.5 text-right text-sm font-medium tabular-nums">
+                          <span className="inline-flex items-center gap-1 justify-end">
+                            {mismatch && (
+                              <span title="This unit can't be costed against the ingredient's base unit. Set a gram/ml equivalent in Settings → Custom units." className="text-amber-500"><AlertTriangle className="w-3.5 h-3.5" /></span>
+                            )}
+                            {fmtMoney(cost, symbol)}
+                          </span>
+                        </td>
                         <td className="px-1 py-1.5 text-center">
                           <button onClick={() => removeLine(idx)} className="text-neutral-300 hover:text-rose-600"><Trash2 className="w-3.5 h-3.5" /></button>
                         </td>
