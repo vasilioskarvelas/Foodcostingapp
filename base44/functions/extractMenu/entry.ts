@@ -35,12 +35,13 @@ export default async function(req: Request): Promise<Response> {
       required: ['items']
     };
 
-    const result = await base44.asServiceRole.integrations.Core.ExtractDataFromUploadedFile({
-      file_url,
-      json_schema
+    const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      prompt: 'Extract every menu item from the attached file. For each item return: name, category (e.g. Pizza, Pasta, Mains, Starters, Drinks, Desserts), a short description, size (e.g. Small/Large/Family), size_diameter in inches (only if it is a pizza, otherwise 0), and selling_price_incl_gst as a plain number. Return only the JSON object.',
+      file_urls: [file_url],
+      response_json_schema: json_schema
     });
 
-    const items = (result && result.output && result.output.items) || (Array.isArray(result.output) ? result.output : []) || [];
+    const items = (result && Array.isArray(result.items) ? result.items : (Array.isArray(result) ? result : []));
     const cleaned = items.map((it) => ({
       name: String(it.name || '').trim(),
       category: it.category || 'Uncategorised',
