@@ -1,0 +1,36 @@
+{
+  "name": "PackagingItem",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "unit": {
+      "type": "string",
+      "default": "each"
+    },
+    "cost_per_unit": {
+      "type": "number"
+    },
+    "suitable_sizes": {
+      "type": "string"
+    },
+    "order_type": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "archived"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

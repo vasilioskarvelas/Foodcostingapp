@@ -1,0 +1,79 @@
+{
+  "name": "Ingredient",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "supplier": {
+      "type": "string"
+    },
+    "supplier_product_name": {
+      "type": "string"
+    },
+    "pack_size": {
+      "type": "number"
+    },
+    "pack_unit": {
+      "type": "string",
+      "default": "g"
+    },
+    "purchase_price_excl_gst": {
+      "type": "number"
+    },
+    "purchase_price_incl_gst": {
+      "type": "number"
+    },
+    "base_unit": {
+      "type": "string",
+      "default": "g"
+    },
+    "cost_per_base_unit": {
+      "type": "number"
+    },
+    "yield_pct": {
+      "type": "number",
+      "default": 100
+    },
+    "wastage_pct": {
+      "type": "number",
+      "default": 0
+    },
+    "allergens": {
+      "type": "string"
+    },
+    "storage_notes": {
+      "type": "string"
+    },
+    "preferred_supplier": {
+      "type": "string"
+    },
+    "alternative_supplier": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "archived"
+      ],
+      "default": "active"
+    },
+    "last_price_update": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "previous_price": {
+      "type": "number"
+    },
+    "price_change_pct": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

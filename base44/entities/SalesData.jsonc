@@ -1,0 +1,30 @@
+{
+  "name": "SalesData",
+  "type": "object",
+  "properties": {
+    "menu_item_id": {
+      "type": "string"
+    },
+    "menu_item_name": {
+      "type": "string"
+    },
+    "period": {
+      "type": "string"
+    },
+    "units_sold": {
+      "type": "number"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "imported",
+        "pos"
+      ],
+      "default": "manual"
+    }
+  },
+  "required": [
+    "menu_item_id"
+  ]
+}

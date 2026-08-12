@@ -1,0 +1,49 @@
+{
+  "name": "PreparedRecipe",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "ingredients": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "batch_yield": {
+      "type": "number"
+    },
+    "usable_yield": {
+      "type": "number"
+    },
+    "cost_per_unit": {
+      "type": "number"
+    },
+    "unit": {
+      "type": "string",
+      "default": "g"
+    },
+    "wastage_pct": {
+      "type": "number",
+      "default": 0
+    },
+    "instructions": {
+      "type": "string"
+    },
+    "photo_url": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "archived"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

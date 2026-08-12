@@ -1,0 +1,32 @@
+{
+  "name": "Business",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "currency": {
+      "type": "string",
+      "default": "AUD"
+    },
+    "currency_symbol": {
+      "type": "string",
+      "default": "$"
+    },
+    "gst_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "tax_rate": {
+      "type": "number",
+      "default": 0.1
+    },
+    "onboarded": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

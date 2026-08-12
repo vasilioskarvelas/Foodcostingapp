@@ -1,12 +1,27 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
-// Add page imports here
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
+import Layout from '@/components/Layout';
+import Dashboard from '@/pages/Dashboard';
+import Menu from '@/pages/Menu';
+import Recipes from '@/pages/Recipes';
+import Ingredients from '@/pages/Ingredients';
+import SupplierInvoices from '@/pages/SupplierInvoices';
+import Packaging from '@/pages/Packaging';
+import MenuEngineering from '@/pages/MenuEngineering';
+import PortionGuides from '@/pages/PortionGuides';
+import Reports from '@/pages/Reports';
+import Settings from '@/pages/Settings';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -34,7 +49,24 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/menu" element={<Menu />} />
+          <Route path="/recipes" element={<Recipes />} />
+          <Route path="/ingredients" element={<Ingredients />} />
+          <Route path="/invoices" element={<SupplierInvoices />} />
+          <Route path="/packaging" element={<Packaging />} />
+          <Route path="/engineering" element={<MenuEngineering />} />
+          <Route path="/portion-guides" element={<PortionGuides />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

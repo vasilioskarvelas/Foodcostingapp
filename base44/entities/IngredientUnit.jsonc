@@ -1,0 +1,34 @@
+{
+  "name": "IngredientUnit",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "weight",
+        "volume",
+        "count",
+        "kitchen"
+      ],
+      "default": "count"
+    },
+    "base_unit": {
+      "type": "string",
+      "default": "each"
+    },
+    "base_amount": {
+      "type": "number",
+      "default": 1
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

@@ -90,3 +90,9 @@
     @apply bg-background text-foreground font-body;
   }
 }
+
+@layer components {
+  .input {
+    @apply w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100;
+  }
+}

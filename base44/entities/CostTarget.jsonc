@@ -1,0 +1,16 @@
+{
+  "name": "CostTarget",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string"
+    },
+    "target_food_cost_pct": {
+      "type": "number",
+      "default": 30
+    }
+  },
+  "required": [
+    "category"
+  ]
+}

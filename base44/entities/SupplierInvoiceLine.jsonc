@@ -1,0 +1,49 @@
+{
+  "name": "SupplierInvoiceLine",
+  "type": "object",
+  "properties": {
+    "invoice_id": {
+      "type": "string"
+    },
+    "product_name": {
+      "type": "string"
+    },
+    "pack_size": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "number"
+    },
+    "unit_price": {
+      "type": "number"
+    },
+    "gst": {
+      "type": "number"
+    },
+    "total_price": {
+      "type": "number"
+    },
+    "matched_ingredient_id": {
+      "type": "string"
+    },
+    "matched_ingredient_name": {
+      "type": "string"
+    },
+    "match_status": {
+      "type": "string",
+      "enum": [
+        "ai_suggested",
+        "needs_review",
+        "confirmed",
+        "no_match"
+      ],
+      "default": "ai_suggested"
+    },
+    "confidence": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "product_name"
+  ]
+}

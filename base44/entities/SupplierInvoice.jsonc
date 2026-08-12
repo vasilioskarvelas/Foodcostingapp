@@ -1,0 +1,34 @@
+{
+  "name": "SupplierInvoice",
+  "type": "object",
+  "properties": {
+    "supplier_id": {
+      "type": "string"
+    },
+    "supplier_name": {
+      "type": "string"
+    },
+    "invoice_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "total": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ai_suggested",
+        "needs_review",
+        "confirmed"
+      ],
+      "default": "needs_review"
+    },
+    "confidence": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "supplier_name"
+  ]
+}

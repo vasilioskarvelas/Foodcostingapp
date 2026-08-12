@@ -1,0 +1,32 @@
+{
+  "name": "IngredientPriceHistory",
+  "type": "object",
+  "properties": {
+    "ingredient_id": {
+      "type": "string"
+    },
+    "ingredient_name": {
+      "type": "string"
+    },
+    "old_price": {
+      "type": "number"
+    },
+    "new_price": {
+      "type": "number"
+    },
+    "price_change_pct": {
+      "type": "number"
+    },
+    "changed_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "string",
+      "default": "invoice"
+    }
+  },
+  "required": [
+    "ingredient_id"
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "name": "MenuItem",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "size": {
+      "type": "string"
+    },
+    "size_diameter": {
+      "type": "number"
+    },
+    "selling_price_incl_gst": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "archived"
+      ],
+      "default": "active"
+    },
+    "target_food_cost_pct": {
+      "type": "number",
+      "default": 30
+    },
+    "packaging_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "labour_allowance": {
+      "type": "number",
+      "default": 0
+    },
+    "utilities_allowance": {
+      "type": "number",
+      "default": 0
+    },
+    "delivery_commission": {
+      "type": "number",
+      "default": 0
+    },
+    "loyalty_discount": {
+      "type": "number",
+      "default": 0
+    },
+    "promotional_discount": {
+      "type": "number",
+      "default": 0
+    },
+    "wastage_pct": {
+      "type": "number",
+      "default": 0
+    },
+    "merchant_fee": {
+      "type": "number",
+      "default": 0
+    },
+    "weekly_sales_estimate": {
+      "type": "number",
+      "default": 0
+    },
+    "location_id": {
+      "type": "string"
+    },
+    "recipe_lines": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "confidence": {
+      "type": "number"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "ai_suggested",
+        "manual",
+        "imported"
+      ],
+      "default": "manual"
+    },
+    "review_status": {
+      "type": "string",
+      "enum": [
+        "ai_suggested",
+        "needs_review",
+        "confirmed",
+        "missing_info"
+      ],
+      "default": "confirmed"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
