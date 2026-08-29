@@ -30,5 +30,11 @@
   },
   "required": [
     "supplier_name"
-  ]
+  ],
+  "rls": {
+    "create": true,
+    "read": true,
+    "update": true,
+    "delete": true
+  }
 }
